@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>AI 助手</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, "Microsoft YaHei", sans-serif;
+        background: #f0fdf4;
+      }
+      .wrap {
+        padding: 12px;
+        box-sizing: border-box;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: #222;
+      }
+      .box {
+        flex: 1;
+        overflow: auto;
+        background: #fff;
+        border-radius: 8px;
+        padding: 18px;
+        box-sizing: border-box;
+        border: 1px solid #d1fae5;
+      }
+      .msg {
+        margin: 10px 0;
+        padding: 10px 12px;
+        border-radius: 10px;
+        max-width: 92%;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 14px;
+      }
+      .user {
+        background: #dcfce7;
+        margin-left: auto;
+      }
+      .ai {
+        background: #e0f2fe;
+        margin-right: auto;
+      }
+      .inputRow {
+        margin-top: 10px;
+        display: flex;
+        gap: 10px;
+      }
+      textarea {
+        flex: 1;
+        height: 70px;
+        resize: none;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 14px;
+        box-sizing: border-box;
+        background: #fff;
+      }
+      button {
+        width: 96px;
+        border: 0;
+        border-radius: 8px;
+        background: #10b981;
+        color: #fff;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .hint {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #888;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="title">AI 助手</div>
+      <div class="box" id="chatBox"></div>
+
+      <div class="inputRow">
+        <textarea id="question" placeholder="请输入你的问题...（例如：请分析课堂学习情况）"></textarea>
+        <button id="sendBtn" onclick="send()">发送</button>
+      </div>
+      <div class="hint">提示：首次使用需要配置后端 `openai.api-key`。</div>
+    </div>
+
+    <script>
+      const chatBox = document.getElementById("chatBox");
+      const questionEl = document.getElementById("question");
+      const sendBtn = document.getElementById("sendBtn");
+
+      // 防止滚轮滚动时“父页面首页”一起滚动
+      chatBox.addEventListener(
+        "wheel",
+        function (e) {
+          e.stopPropagation();
+          // 使用手动滚动，确保滚轮只影响聊天内容区域
+          e.preventDefault();
+          chatBox.scrollTop += e.deltaY;
+        },
+        { passive: false }
+      );
+
+      function ctxPath() {
+        // /springboote51e2/front/pages/chat/chat.html -> springboote51e2
+        const parts = window.location.pathname.split("/");
+        return parts.length > 1 ? parts[1] : "";
+      }
+
+      const apiUrl = "/" + ctxPath() + "/api/chat";
+
+      function addMsg(text, type) {
+        const div = document.createElement("div");
+        div.className = "msg " + (type === "user" ? "user" : "ai");
+        div.textContent = text;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      async function send() {
+        const q = (questionEl.value || "").trim();
+        if (!q) return;
+
+        addMsg(q, "user");
+        questionEl.value = "";
+        sendBtn.disabled = true;
+
+        try {
+          const res = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: q }),
+          });
+
+          const text = await res.text();
+          // 返回的是纯字符串；若后端报错也会是文本
+          addMsg(text, "ai");
+        } catch (e) {
+          addMsg("请求失败：" + e, "ai");
+        } finally {
+          sendBtn.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>
+
